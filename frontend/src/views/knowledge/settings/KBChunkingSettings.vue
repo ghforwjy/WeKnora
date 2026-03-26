@@ -106,6 +106,46 @@
         </div>
       </div>
 
+      <!-- Parent Chunk Separators -->
+      <div v-if="localEnableParentChild" class="setting-row">
+        <div class="setting-info">
+          <label>父块分隔符</label>
+          <p class="desc">父块分割时使用的分隔符，如"第.*章"</p>
+        </div>
+        <div class="setting-control">
+          <t-select
+            v-model="localParentSeparators"
+            :options="separatorOptions"
+            multiple
+            creatable
+            filterable
+            placeholder="输入父块分隔符"
+            @change="handleParentSeparatorsChange"
+            style="width: 280px;"
+          />
+        </div>
+      </div>
+
+      <!-- Child Chunk Separators -->
+      <div v-if="localEnableParentChild" class="setting-row">
+        <div class="setting-info">
+          <label>子块分隔符</label>
+          <p class="desc">子块分割时使用的分隔符，如"第.*条"</p>
+        </div>
+        <div class="setting-control">
+          <t-select
+            v-model="localChildSeparators"
+            :options="separatorOptions"
+            multiple
+            creatable
+            filterable
+            placeholder="输入子块分隔符"
+            @change="handleChildSeparatorsChange"
+            style="width: 280px;"
+          />
+        </div>
+      </div>
+
       <!-- Child Chunk Size -->
       <div v-if="localEnableParentChild" class="setting-row">
         <div class="setting-info">
@@ -144,6 +184,8 @@ interface ChunkingConfig {
   chunkSize: number
   chunkOverlap: number
   separators: string[]
+  parentSeparators?: string[]
+  childSeparators?: string[]
   parserEngineRules?: ParserEngineRule[]
   enableParentChild: boolean
   parentChunkSize: number
@@ -163,6 +205,8 @@ const emit = defineEmits<{
 const localChunkSize = ref(props.config.chunkSize)
 const localChunkOverlap = ref(props.config.chunkOverlap)
 const localSeparators = ref([...props.config.separators])
+const localParentSeparators = ref([...(props.config.parentSeparators || [])])
+const localChildSeparators = ref([...(props.config.childSeparators || [])])
 const localEnableParentChild = ref(props.config.enableParentChild ?? false)
 const localParentChunkSize = ref(props.config.parentChunkSize || 4096)
 const localChildChunkSize = ref(props.config.childChunkSize || 384)
@@ -176,13 +220,19 @@ const separatorOptions = computed(() => [
   { label: t('knowledgeEditor.chunking.separators.questionCn'), value: '？' },
   { label: t('knowledgeEditor.chunking.separators.semicolonCn'), value: '；' },
   { label: t('knowledgeEditor.chunking.separators.semicolonEn'), value: ';' },
-  { label: t('knowledgeEditor.chunking.separators.space'), value: ' ' }
+  { label: t('knowledgeEditor.chunking.separators.space'), value: ' ' },
+  { label: '第.*章', value: '第.*章' },
+  { label: '第.*条', value: '第.*条' },
+  { label: '第.*款', value: '第.*款' },
+  { label: '第.*项', value: '第.*项' }
 ])
 
 watch(() => props.config, (newConfig) => {
   localChunkSize.value = newConfig.chunkSize
   localChunkOverlap.value = newConfig.chunkOverlap
   localSeparators.value = [...newConfig.separators]
+  localParentSeparators.value = [...(newConfig.parentSeparators || [])]
+  localChildSeparators.value = [...(newConfig.childSeparators || [])]
   localEnableParentChild.value = newConfig.enableParentChild ?? false
   localParentChunkSize.value = newConfig.parentChunkSize || 4096
   localChildChunkSize.value = newConfig.childChunkSize || 384
@@ -191,6 +241,8 @@ watch(() => props.config, (newConfig) => {
 const handleChunkSizeChange = () => { emitUpdate() }
 const handleChunkOverlapChange = () => { emitUpdate() }
 const handleSeparatorsChange = () => { emitUpdate() }
+const handleParentSeparatorsChange = () => { emitUpdate() }
+const handleChildSeparatorsChange = () => { emitUpdate() }
 const handleParentChildChange = () => { emitUpdate() }
 const handleParentChunkSizeChange = () => { emitUpdate() }
 const handleChildChunkSizeChange = () => { emitUpdate() }
@@ -200,6 +252,8 @@ const emitUpdate = () => {
     chunkSize: localChunkSize.value,
     chunkOverlap: localChunkOverlap.value,
     separators: localSeparators.value,
+    parentSeparators: localParentSeparators.value,
+    childSeparators: localChildSeparators.value,
     parserEngineRules: props.config.parserEngineRules,
     enableParentChild: localEnableParentChild.value,
     parentChunkSize: localParentChunkSize.value,

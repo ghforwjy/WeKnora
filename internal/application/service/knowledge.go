@@ -1393,15 +1393,28 @@ func buildParentChildConfigs(cc types.ChunkingConfig, base chunker.SplitterConfi
 	if childSize <= 0 {
 		childSize = 384
 	}
+	
+	// Use parent-specific separators if provided, otherwise use base separators
+	parentSeparators := base.Separators
+	if len(cc.ParentSeparators) > 0 {
+		parentSeparators = cc.ParentSeparators
+	}
+	
+	// Use child-specific separators if provided, otherwise use base separators
+	childSeparators := base.Separators
+	if len(cc.ChildSeparators) > 0 {
+		childSeparators = cc.ChildSeparators
+	}
+	
 	parent = chunker.SplitterConfig{
 		ChunkSize:    parentSize,
 		ChunkOverlap: base.ChunkOverlap, // reuse configured overlap for parents
-		Separators:   base.Separators,
+		Separators:   parentSeparators,
 	}
 	child = chunker.SplitterConfig{
 		ChunkSize:    childSize,
 		ChunkOverlap: childSize / 5, // ~20% overlap for child chunks
-		Separators:   base.Separators,
+		Separators:   childSeparators,
 	}
 	return
 }

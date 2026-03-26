@@ -8,6 +8,8 @@ services:
     container_name: WeKnora-frontend
     ports:
       - "${FRONTEND_PORT:-80}:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
     environment:
       - MAX_FILE_SIZE_MB=${MAX_FILE_SIZE_MB:-50}
       - APP_HOST=${APP_HOST:-app}
@@ -36,11 +38,13 @@ services:
     ports:
       - "${APP_PORT:-8080}:8080"
     volumes:
-      - data-files:/data/files
+      - ./volumes/data_files:/data/files
       - docreader-tmp:/tmp/docreader:ro
       - ./config/config.yaml:/app/config/config.yaml
       # Optional: mount custom skills directory (allows adding skills without rebuilding image)
       - ./skills/preloaded:/app/skills/preloaded
+      # 代码挂载：将本地项目目录挂载到 GOPATH 路径，修改代码后容器内编译立即生效
+      - .:/go/src/github.com/Tencent/WeKnora
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
@@ -99,7 +103,7 @@ services:
       - MINIO_ACCESS_KEY_ID=${MINIO_ACCESS_KEY_ID:-minioadmin}
       - MINIO_SECRET_ACCESS_KEY=${MINIO_SECRET_ACCESS_KEY:-minioadmin}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-}
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://WeKnora-ollama:11434}
       - STREAM_MANAGER_TYPE=${STREAM_MANAGER_TYPE:-}
       - REDIS_ADDR=redis:6379
       - REDIS_USERNAME=${REDIS_USERNAME:-}
@@ -175,7 +179,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # 修改的PostgreSQL配置
+  # PostgreSQL 数据库 - 使用本地目录便于数据迁移
   postgres:
     image: paradedb/paradedb:v0.22.2-pg17
     container_name: WeKnora-postgres
@@ -184,7 +188,7 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ./volumes/postgres:/var/lib/postgresql/data
     networks:
       - WeKnora-network
     healthcheck:
@@ -205,6 +209,52 @@ services:
     networks:
       - WeKnora-network
 
+  ollama:
+    image: ollama/ollama:0.6.8
+    container_name: WeKnora-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./volumes/ollama:/root/.ollama
+    networks:
+      - WeKnora-network
+    restart: unless-stopped
+    profiles:
+      - ollama
+      - full
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  rerank:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.rerank
+    container_name: WeKnora-rerank
+    ports:
+      - "${RERANK_PORT:-8000}:8000"
+    volumes:
+      - ./volumes/rerank:/app/model
+    networks:
+      - WeKnora-network
+    restart: unless-stopped
+    profiles:
+      - rerank
+      - full
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: WeKnora-minio
@@ -216,7 +266,7 @@ services:
       - MINIO_ROOT_PASSWORD=${MINIO_SECRET_ACCESS_KEY:-minioadmin}
     command: server --console-address ":9001" /data
     volumes:
-      - minio_data:/data
+      - ./volumes/minio:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -257,7 +307,7 @@ services:
     image: neo4j:2025.10.1
     container_name: WeKnora-neo4j
     volumes:
-      - neo4j-data:/data
+      - ./volumes/neo4j:/data
     environment:
       - NEO4J_AUTH=${NEO4J_USERNAME:-neo4j}/${NEO4J_PASSWORD:-password}
       - NEO4J_apoc_export_file_enabled=true
@@ -281,7 +331,7 @@ services:
       - "${QDRANT_REST_PORT:-6333}:6333"
       - "${QDRANT_PORT:-6334}:6334"
     volumes:
-      - qdrant_data:/qdrant/storage
+      - ./volumes/qdrant:/qdrant/storage
     networks:
       - WeKnora-network
     restart: unless-stopped
@@ -310,7 +360,7 @@ services:
       - "19530:19530"
       - "9091:9091"
     volumes:
-      - milvus_data:/var/lib/milvus
+      - ./volumes/milvus:/var/lib/milvus
     networks:
       - WeKnora-network
     restart: unless-stopped
@@ -333,7 +383,7 @@ services:
       - "9035:8080"
       - "50052:50051"
     volumes:
-      - weaviate_data:/var/lib/weaviate
+      - ./volumes/weaviate:/var/lib/weaviate
     networks:
       - WeKnora-network
     restart: unless-stopped
@@ -344,13 +394,7 @@ networks:
   WeKnora-network:
     driver: bridge
 
+# 注意：jaeger_data 和 docreader-tmp 仍然是 named volumes，如果需要迁移可以改为 bind mount
 volumes:
-  postgres-data:
-  data-files:
-  docreader-tmp:
   jaeger_data:
-  minio_data:
-  neo4j-data:
-  qdrant_data:
-  milvus_data:
-  weaviate_data:
+  docreader-tmp:

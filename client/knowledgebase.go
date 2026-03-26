@@ -47,9 +47,14 @@ type KnowledgeBaseConfig struct {
 
 // ChunkingConfig represents document chunking configuration
 type ChunkingConfig struct {
-	ChunkSize    int      `json:"chunk_size"`    // Chunk size
-	ChunkOverlap int      `json:"chunk_overlap"` // Overlap size
-	Separators   []string `json:"separators"`    // Separators
+	ChunkSize         int      `json:"chunk_size"`          // Chunk size
+	ChunkOverlap      int      `json:"chunk_overlap"`       // Overlap size
+	Separators        []string `json:"separators"`          // Separators
+	ParentSeparators  []string `json:"parent_separators,omitempty"`  // Parent chunk separators
+	ChildSeparators   []string `json:"child_separators,omitempty"`   // Child chunk separators
+	EnableParentChild bool     `json:"enable_parent_child,omitempty"` // Enable parent-child chunking
+	ParentChunkSize   int      `json:"parent_chunk_size,omitempty"`   // Parent chunk size
+	ChildChunkSize    int      `json:"child_chunk_size,omitempty"`    // Child chunk size
 }
 
 // FAQConfig represents faq-specific configuration

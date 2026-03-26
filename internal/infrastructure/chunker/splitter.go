@@ -114,7 +114,13 @@ func splitBySeparators(text string, separators []string) []string {
 	// Build regex that captures separators
 	var parts []string
 	for _, sep := range separators {
-		parts = append(parts, regexp.QuoteMeta(sep))
+		// Check if the separator is already a regex pattern (contains regex meta-characters)
+		// If it is, use it directly; otherwise, escape it for literal matching
+		if isRegexPattern(sep) {
+			parts = append(parts, sep)
+		} else {
+			parts = append(parts, regexp.QuoteMeta(sep))
+		}
 	}
 	pattern := "(" + strings.Join(parts, "|") + ")"
 	re := regexp.MustCompile(pattern)
@@ -132,6 +138,20 @@ func splitBySeparators(text string, separators []string) []string {
 		}
 	}
 	return result
+}
+
+// isRegexPattern checks if the given string contains regex meta-characters.
+// This helps distinguish between literal separators and regex patterns.
+func isRegexPattern(s string) bool {
+	regexMetaChars := []byte("*+?()[]{}|\\^$.#")
+	for _, c := range []byte(s) {
+		for _, m := range regexMetaChars {
+			if c == m {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // runeLen returns the number of runes in s.

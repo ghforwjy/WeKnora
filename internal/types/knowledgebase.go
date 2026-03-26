@@ -116,6 +116,10 @@ type ChunkingConfig struct {
 	ChunkOverlap int `yaml:"chunk_overlap" json:"chunk_overlap"`
 	// Separators
 	Separators []string `yaml:"separators"    json:"separators"`
+	// ParentSeparators are separators for parent chunks (used when EnableParentChild is true)
+	ParentSeparators []string `yaml:"parent_separators,omitempty" json:"parent_separators,omitempty"`
+	// ChildSeparators are separators for child chunks (used when EnableParentChild is true)
+	ChildSeparators []string `yaml:"child_separators,omitempty" json:"child_separators,omitempty"`
 	// EnableMultimodal (deprecated, kept for backward compatibility with old data)
 	EnableMultimodal bool `yaml:"enable_multimodal,omitempty" json:"enable_multimodal,omitempty"`
 	// ParserEngineRules configures which parser engine to use for each file type.

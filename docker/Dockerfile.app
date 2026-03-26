@@ -8,15 +8,32 @@ ARG GOPRIVATE_ARG
 ARG GOPROXY_ARG
 ARG GOSUMDB_ARG=off
 ARG APK_MIRROR_ARG
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG NO_PROXY
+ARG no_proxy
 
 # 设置Go环境变量
 ENV GOPRIVATE=${GOPRIVATE_ARG}
 ENV GOPROXY=${GOPROXY_ARG}
 ENV GOSUMDB=${GOSUMDB_ARG}
 
+# 设置代理环境变量
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV http_proxy=${http_proxy}
+ENV https_proxy=${https_proxy}
+ENV NO_PROXY=${NO_PROXY}
+ENV no_proxy=${no_proxy}
+
 # Install dependencies
+# 默认使用阿里云镜像源，同时保持代理用于拉取 Docker 镜像
 RUN if [ -n "$APK_MIRROR_ARG" ]; then \
         sed -i "s@deb.debian.org@${APK_MIRROR_ARG}@g" /etc/apt/sources.list.d/debian.sources; \
+    else \
+        sed -i "s@deb.debian.org@mirrors.aliyun.com@g" /etc/apt/sources.list.d/debian.sources; \
     fi && \
     apt-get update && \
     apt-get install -y git build-essential libsqlite3-dev
@@ -53,12 +70,29 @@ FROM debian:12.12-slim
 WORKDIR /app
 
 ARG APK_MIRROR_ARG
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG NO_PROXY
+ARG no_proxy
+
+# 设置代理环境变量
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV http_proxy=${http_proxy}
+ENV https_proxy=${https_proxy}
+ENV NO_PROXY=${NO_PROXY}
+ENV no_proxy=${no_proxy}
 
 # Create a non-root user first
 RUN useradd -m -s /bin/bash appuser
 
+# 默认使用阿里云镜像源
 RUN if [ -n "$APK_MIRROR_ARG" ]; then \
         sed -i "s@deb.debian.org@${APK_MIRROR_ARG}@g" /etc/apt/sources.list.d/debian.sources; \
+    else \
+        sed -i "s@deb.debian.org@mirrors.aliyun.com@g" /etc/apt/sources.list.d/debian.sources; \
     fi && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -75,6 +109,21 @@ RUN if [ -n "$APK_MIRROR_ARG" ]; then \
     chmod +x /usr/local/bin/uvx && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# 安装 Go 编译器（用于本地编译代码）
+# Go 官方二进制文件 ~100MB，合理大小
+ENV GOLANG_VERSION=1.24.0
+ENV GOPATH=/go
+ENV PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
+RUN curl -fsSL https://go.dev/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz -o /tmp/go.tar.gz && \
+    tar -C /usr/local -xzf /tmp/go.tar.gz && \
+    rm /tmp/go.tar.gz && \
+    mkdir -p $GOPATH/src/github.com/Tencent && \
+    ln -s /app $GOPATH/src/github.com/Tencent/WeKnora && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 创建代码挂载点和编译脚本目录
+RUN mkdir -p /app_src && chown -R appuser:appuser /app_src
 
 # Create data directories and set permissions
 RUN mkdir -p /data/files && \
