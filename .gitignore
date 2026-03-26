@@ -44,3 +44,20 @@ server
 frontend/.vite
 frontend/chrome-extension/
 WeKnora-Chrome-Extension
+
+# 数据目录（不应该上传到 Git）
+volumes/
+ollama_data/
+rerank_data/
+postgres_data/
+minio_data/
+neo4j_data/
+qdrant_data/
+milvus_data/
+weaviate_data/
+
+# 临时脚本
+*.ps1
+*.py
+!rerank_server.py
+!docker/Dockerfile.rerank
