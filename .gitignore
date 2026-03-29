@@ -50,6 +50,7 @@ images/
 
 # 数据目录（不应该上传到 Git）
 volumes/
+volumes.zip
 ollama_data/
 rerank_data/
 postgres_data/
