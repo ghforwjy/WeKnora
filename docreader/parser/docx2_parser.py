@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class Docx2Parser(FirstParser):
-    _parser_cls = (MarkitdownParser, DocxParser)
+    _parser_cls = (DocxParser,)
 
 
 if __name__ == "__main__":

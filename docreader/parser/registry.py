@@ -4,6 +4,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 from docreader.parser.base_parser import BaseParser
 from docreader.parser.doc_parser import DocParser
 from docreader.parser.docx2_parser import Docx2Parser
+from docreader.parser.docx_parser import DocxParser
+from docreader.parser.docling_parser import DoclingParser
 from docreader.parser.excel_parser import ExcelParser
 from docreader.parser.image_parser import ImageParser
 from docreader.parser.markdown_parser import MarkdownParser
@@ -59,7 +61,7 @@ class ParserEngineRegistry:
         if engine and engine in self._engines:
             cls = self._engines[engine].get(ft)
             if cls:
-                logger.info("Using engine '%s' for file type '%s'", engine, ft)
+                logger.info("Using engine '%s' for file type '%s', selected parser: %s", engine, ft, cls.__name__)
                 return cls
             logger.info(
                 "Engine '%s' does not support '%s', falling back to builtin",
@@ -70,6 +72,7 @@ class ParserEngineRegistry:
         builtin = self._engines.get(BUILTIN_ENGINE, {})
         cls = builtin.get(ft)
         if cls:
+            logger.info("Using builtin engine for file type '%s', selected parser: %s", ft, cls.__name__)
             return cls
 
         raise ValueError(f"Unsupported file type: {file_type}")
@@ -120,7 +123,7 @@ def _build_default_registry() -> ParserEngineRegistry:
     reg.register(
         BUILTIN_ENGINE,
         {
-            "docx": Docx2Parser,
+            "docx": DocxParser,
             "doc": DocParser,
             "pdf": PDFParser,
             "md": MarkdownParser,
@@ -135,8 +138,8 @@ def _build_default_registry() -> ParserEngineRegistry:
     reg.register(
         "markitdown",
         {
-            "md": MarkitdownParser,
-            "markdown": MarkitdownParser,
+            "md": MarkdownParser,
+            "markdown": MarkdownParser,
             "pdf": MarkitdownParser,
             "docx": MarkitdownParser,
             "doc": MarkitdownParser,
@@ -147,6 +150,22 @@ def _build_default_registry() -> ParserEngineRegistry:
             "csv": MarkitdownParser,
         },
         description="MarkItDown 解析引擎（微软 MarkItDown 库）",
+    )
+
+    reg.register(
+        "docling",
+        {
+            "md": DoclingParser,
+            "markdown": DoclingParser,
+            "pdf": DoclingParser,
+            "docx": DoclingParser,
+            "doc": DoclingParser,
+            "pptx": DoclingParser,
+            "ppt": DoclingParser,
+            "xlsx": DoclingParser,
+            "xls": DoclingParser,
+        },
+        description="Docling 解析引擎（转换为 Markdown 格式）",
     )
 
     # NOTE: Engine listing is managed by Go-side engine registry

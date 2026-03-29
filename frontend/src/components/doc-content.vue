@@ -185,26 +185,28 @@ renderer.image = function (href: string, title: string | null, text: string) {
 };
 
 // 自定义代码块渲染器，只显示语言标签
-renderer.code = function (text: string, lang?: string) {
+renderer.code = function (text: any, lang?: string) {
+  // 确保text是字符串
+  const safeText = typeof text === 'string' ? text : String(text || '');
   // Mermaid 图表处理
   if (lang === 'mermaid') {
     // 生成唯一ID
     const id = `mermaid-${++mermaidRenderCount}`;
     // 返回带有 mermaid 类的 div，后续由 mermaid.run() 处理
-    return `<div class="mermaid" id="${id}">${text}</div>`;
+    return `<div class="mermaid" id="${id}">${safeText}</div>`;
   }
 
   let detectedLang = lang;
   let highlighted = '';
   if (lang && hljs.getLanguage(lang)) {
     try {
-      highlighted = hljs.highlight(text, { language: lang }).value;
+      highlighted = hljs.highlight(safeText, { language: lang }).value;
     } catch (e) {
-      highlighted = hljs.highlightAuto(text).value;
-      detectedLang = hljs.highlightAuto(text).language || lang;
+      highlighted = hljs.highlightAuto(safeText).value;
+      detectedLang = hljs.highlightAuto(safeText).language || lang;
     }
   } else {
-    const auto = hljs.highlightAuto(text);
+    const auto = hljs.highlightAuto(safeText);
     highlighted = auto.value;
     detectedLang = auto.language || lang;
   }
@@ -263,20 +265,31 @@ const isMarkdownFile = (fileType?: string): boolean => {
   return markdownTypes.includes(fileType.toLowerCase());
 };
 const runMarkdownPostRenderPipeline = async () => {
-  await nextTick();
-  const renderRoot = mdContentWrap.value as ParentNode;
-  await hydrateProtectedFileImages(renderRoot);
-  const images = renderRoot?.querySelectorAll?.('img.markdown-image') as NodeListOf<HTMLImageElement> | undefined;
-  if (images) {
-    images.forEach(async item => {
-      const isValid = await checkImage(item.src);
-      if (!isValid) {
-        item.remove();
-      }
-    })
+  console.log('[runMarkdownPostRenderPipeline] Starting pipeline');
+  try {
+    await nextTick();
+    console.log('[runMarkdownPostRenderPipeline] After nextTick');
+    const renderRoot = mdContentWrap.value as ParentNode;
+    console.log('[runMarkdownPostRenderPipeline] Render root:', renderRoot);
+    await hydrateProtectedFileImages(renderRoot);
+    console.log('[runMarkdownPostRenderPipeline] After hydrateProtectedFileImages');
+    const images = renderRoot?.querySelectorAll?.('img.markdown-image') as NodeListOf<HTMLImageElement> | undefined;
+    if (images) {
+      console.log('[runMarkdownPostRenderPipeline] Found images:', images.length);
+      images.forEach(async item => {
+        const isValid = await checkImage(item.src);
+        if (!isValid) {
+          item.remove();
+        }
+      })
+    }
+    // 渲染 Mermaid 图表
+    console.log('[runMarkdownPostRenderPipeline] Before renderMermaidDiagrams');
+    await renderMermaidDiagrams();
+    console.log('[runMarkdownPostRenderPipeline] After renderMermaidDiagrams');
+  } catch (error) {
+    console.error('[runMarkdownPostRenderPipeline] Error:', error);
   }
-  // 渲染 Mermaid 图表
-  await renderMermaidDiagrams();
 };
 
 watch(() => props.details.md, (newVal) => {

@@ -104,11 +104,10 @@ class DocParser(Docx2Parser):
         logger.info(f"Parsing DOC document, content size: {len(content)} bytes")
 
         handle_chain = [
-            # 1. Try to convert to docx format to extract images
-            self._parse_with_docx,
-            # 2. If image extraction is not needed or conversion failed,
-            # try using antiword to extract text
+            # 1. First try using antiword to extract text (preserves numbering format)
             self._parse_with_antiword,
+            # 2. If antiword extraction fails, try to convert to docx format
+            self._parse_with_docx,
             # 3. If antiword extraction fails, use textract
             # NOTE: _parse_with_textract is disabled due to SSRF vulnerability
             # self._parse_with_textract,
@@ -134,32 +133,64 @@ class DocParser(Docx2Parser):
             raise RuntimeError("Failed to convert DOC to DOCX")
 
         logger.info("Successfully converted DOC to DOCX, using DocxParser")
-        # Use existing DocxParser to parse the converted docx
-        document = super(Docx2Parser, self).parse_into_text(docx_content)
+        # Use DocxParser directly to parse the converted docx
+        from docreader.parser.docx_parser import DocxParser
+        docx_parser = DocxParser(file_name=self.file_name, file_type='docx')
+        document = docx_parser.parse_into_text(docx_content)
         logger.info(f"Extracted {len(document.content)} characters using DocxParser")
         return document
 
     def _parse_with_antiword(self, temp_file_path: str) -> Document:
         logger.info("Attempting to parse DOC file with antiword")
 
-        # Check if antiword is installed
-        antiword_path = self._try_find_antiword()
-        if not antiword_path:
-            raise RuntimeError("antiword not found in PATH")
+        # Use antiword command directly (same as in test script)
+        cmd = ["antiword", temp_file_path]
+        logger.info(f"Executing antiword command: {' '.join(cmd)}")
+        logger.info(f"Temp file path: {temp_file_path}")
+        logger.info(f"Temp file exists: {os.path.exists(temp_file_path)}")
+        if os.path.exists(temp_file_path):
+            logger.info(f"Temp file size: {os.path.getsize(temp_file_path)} bytes")
 
-        # Use antiword to extract text directly in sandbox
-        cmd = [antiword_path, temp_file_path]
-        logger.info("Executing antiword in sandbox with proxy configuration")
-
-        stdout, stderr, returncode = self.sandbox_executor.execute_in_sandbox(cmd)
-
-        if returncode != 0:
-            raise RuntimeError(
-                f"antiword extraction failed: {stderr.decode('utf-8', errors='ignore')}"
-            )
-        text = stdout.decode("utf-8", errors="ignore")
-        logger.info(f"Successfully extracted {len(text)} characters using antiword")
-        return Document(content=text)
+        # Execute antiword command - same as in test script
+        import subprocess
+        try:
+            # Execute antiword command
+            result = subprocess.run(cmd, capture_output=True, timeout=60)
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"antiword extraction failed: {result.stderr.decode('utf-8', errors='ignore')}"
+                )
+            
+            # Try different encodings to find the correct one
+            encodings = ['utf-8', 'gbk', 'gb2312', 'latin1']
+            text = None
+            
+            for encoding in encodings:
+                try:
+                    text = result.stdout.decode(encoding)
+                    logger.info(f"Successfully decoded with {encoding}")
+                    break
+                except Exception as e:
+                    logger.warning(f"Failed to decode with {encoding}: {e}")
+                    continue
+            
+            if not text:
+                raise RuntimeError("Failed to decode antiword output")
+            
+            logger.info(f"Successfully extracted {len(text)} characters using antiword")
+            
+            # Check if numbering is present
+            if '第一条' in text or '第二条' in text:
+                logger.info("Found numbering format in extracted text")
+            else:
+                logger.warning("No numbering format found in extracted text")
+            
+            return Document(content=text)
+        except Exception as e:
+            logger.error(f"Direct antiword execution failed: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def _parse_with_textract(self, temp_file_path: str) -> Document:
         logger.info(f"Parsing DOC file with textract: {temp_file_path}")

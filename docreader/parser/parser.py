@@ -42,9 +42,10 @@ class Parser:
 
         cls = self.registry.get_parser_class(engine, file_type)
         logger.info(
-            "Creating %s parser instance for %s file",
+            "Creating %s parser instance for %s file, requested engine: %s",
             cls.__name__,
             file_type,
+            engine or "builtin",
         )
         parser = cls(
             file_name=file_name,

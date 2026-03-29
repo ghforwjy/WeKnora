@@ -1344,6 +1344,12 @@ def _extract_page_content_in_process(
         # Extract text content
         text = paragraph.text.strip()
         if text:
+            # Log the original text to see what's being extracted
+            if para_idx < 20:  # Log more paragraphs to find numbered ones
+                logger.info(f"[PID:{os.getpid()}] Paragraph {para_idx} original text: '{text}'")
+            # Also log paragraphs that contain numbering patterns
+            if '第一条' in text or '第二条' in text or '第三条' in text or '第1条' in text:
+                logger.info(f"[PID:{os.getpid()}] Found numbered paragraph {para_idx}: '{text}'")
             # Clean text
             cleaned_text = re.sub(r"\u3000", " ", text).strip()
             current_text += cleaned_text + "\n"
