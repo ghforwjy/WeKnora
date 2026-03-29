@@ -48,6 +48,9 @@ WeKnora-Chrome-Extension
 # Docker 镜像目录（不应该上传到 Git）
 images/
 
+# 临时测试目录
+tmptest/
+
 # 数据目录（不应该上传到 Git）
 volumes/
 volumes.zip
