@@ -1,0 +1,9 @@
+WeKnora 登录账号信息
+========================
+
+账号: admin@test.com
+密码: admin666
+
+访问地址: http://localhost
+
+备注: 首次登录后需要配置 LLM 模型才能使用完整的 RAG 功能

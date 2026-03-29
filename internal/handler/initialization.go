@@ -95,6 +95,8 @@ type KBModelConfigRequest struct {
 		ChunkSize         int                      `json:"chunkSize"`
 		ChunkOverlap      int                      `json:"chunkOverlap"`
 		Separators        []string                 `json:"separators"`
+		ParentSeparators  []string                 `json:"parentSeparators,omitempty"`
+		ChildSeparators   []string                 `json:"childSeparators,omitempty"`
 		ParserEngineRules []types.ParserEngineRule `json:"parserEngineRules,omitempty"`
 		EnableParentChild bool                     `json:"enableParentChild"`
 		ParentChunkSize   int                      `json:"parentChunkSize,omitempty"`
@@ -290,6 +292,12 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 	}
 	if len(req.DocumentSplitting.Separators) > 0 {
 		kb.ChunkingConfig.Separators = req.DocumentSplitting.Separators
+	}
+	if len(req.DocumentSplitting.ParentSeparators) > 0 {
+		kb.ChunkingConfig.ParentSeparators = req.DocumentSplitting.ParentSeparators
+	}
+	if len(req.DocumentSplitting.ChildSeparators) > 0 {
+		kb.ChunkingConfig.ChildSeparators = req.DocumentSplitting.ChildSeparators
 	}
 	kb.ChunkingConfig.ParserEngineRules = req.DocumentSplitting.ParserEngineRules
 	kb.ChunkingConfig.EnableParentChild = req.DocumentSplitting.EnableParentChild

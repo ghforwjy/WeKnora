@@ -1,0 +1,23 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    torch \
+    transformers \
+    accelerate \
+    fastapi \
+    uvicorn[standard] \
+    pydantic \
+    sentencepiece \
+    protobuf \
+    tokenizers
+
+COPY rerank_server.py /app/
+
+ENV RERANK_MODEL_PATH=/app/model
+ENV RERANK_PORT=8000
+
+EXPOSE 8000
+
+CMD ["python", "rerank_server.py"]

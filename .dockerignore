@@ -1,2 +1,8 @@
-**/.venv/
-**/.python-version
+# 排除大文件的缓存目录
+volumes/
+frontend/node_modules/
+.git/
+**/.git/
+**/node_modules/
+**/__pycache__/
+*.log

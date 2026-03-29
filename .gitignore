@@ -45,6 +45,9 @@ frontend/.vite
 frontend/chrome-extension/
 WeKnora-Chrome-Extension
 
+# Docker 镜像目录（不应该上传到 Git）
+images/
+
 # 数据目录（不应该上传到 Git）
 volumes/
 ollama_data/
@@ -55,6 +58,8 @@ neo4j_data/
 qdrant_data/
 milvus_data/
 weaviate_data/
+xinference/
+data/
 
 # 临时脚本
 *.ps1

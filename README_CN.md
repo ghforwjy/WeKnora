@@ -434,7 +434,83 @@ WeKnora/
 ├── internal/    # 核心业务逻辑
 ├── mcp-server/  # MCP服务器
 ├── migrations/  # 数据库迁移脚本
-└── scripts/     # 启动与工具脚本
+├── scripts/     # 启动与工具脚本
+└── volumes/     # Docker 数据挂载目录
+```
+
+### 🐳 Docker 数据挂载配置
+
+为便于系统迁移和数据持久化，所有重要数据都已挂载到本地 `volumes/` 目录。
+
+#### 数据库和数据挂载
+
+| 目录 | 用途 | 说明 |
+|------|------|------|
+| `volumes/postgres/` | PostgreSQL 数据库 | 主数据库，存储知识库、用户、会话等数据 |
+| `volumes/redis/` | Redis 缓存 | 会话缓存、流处理状态 |
+| `volumes/qdrant/` | Qdrant 向量数据库 | 向量检索存储（可选） |
+| `volumes/milvus/` | Milvus 向量数据库 | 向量检索存储（可选） |
+| `volumes/weaviate/` | Weaviate 向量数据库 | 向量检索存储（可选） |
+| `volumes/neo4j/` | Neo4j 图数据库 | 知识图谱存储（可选） |
+| `volumes/minio/` | MinIO 对象存储 | 文件存储（可选） |
+| `volumes/ollama/` | Ollama 模型 | 本地 LLM 模型文件 |
+| `volumes/xinference/` | Xinference 模型 | 模型推理缓存 |
+
+#### 应用数据挂载
+
+| 目录 | 用途 | 说明 |
+|------|------|------|
+| `volumes/data_files/` | 上传文件 | 用户上传的文档文件 |
+| `volumes/docreader-tmp/` | 文档处理临时文件 | 文档解析中间结果 |
+| `volumes/jaeger/` | 链路追踪 | Jaeger 追踪数据（可选） |
+
+#### 编译缓存挂载
+
+| 目录 | 用途 | 说明 |
+|------|------|------|
+| `volumes/go-build-cache/` | Go 编译缓存 | 加速重新编译 |
+| `volumes/pip-cache/` | Python pip 缓存 | Python 包缓存 |
+| `volumes/uv-cache/` | uv 包管理器缓存 | 快速 Python 包安装 |
+| `volumes/duckdb/` | DuckDB 数据 | 嵌入式数据库 |
+| `volumes/docreader-venv/` | DocReader 虚拟环境 | 文档解析 Python 环境 |
+| `volumes/playwright-cache/` | Playwright 浏览器 | 网页解析浏览器缓存 |
+
+#### 配置文件挂载
+
+| 文件/目录 | 用途 | 说明 |
+|-----------|------|------|
+| `config/config.yaml` | 应用主配置 | 知识库、对话、分块等核心配置 |
+| `config/prompt_templates/` | Prompt 模板 | 对话提示词模板目录 |
+| `config/builtin_agents.yaml` | 内置 Agent 配置 | 预置智能体定义 |
+| `frontend/nginx.conf` | Nginx 配置模板 | 用于参考，实际配置由容器自动生成 |
+
+> **⚠️ 注意：**
+> 1. **Nginx 配置**：由容器启动脚本根据环境变量自动生成，不直接挂载配置文件
+> 2. **数据库配置**：Neo4j、Qdrant、Milvus 等服务的配置目录未挂载，避免覆盖镜像默认配置
+> 3. 如需自定义数据库配置，请先从容器中复制默认配置到本地：
+> ```bash
+> # 示例：复制 Neo4j 配置
+> docker cp WeKnora-neo4j:/conf ./volumes/neo4j/conf
+> ```
+
+#### 系统迁移
+
+迁移整个系统只需：
+
+1. **备份整个项目目录**
+   ```bash
+   # 备份包含源码、配置、数据
+   tar -czf weknora-backup.tar.gz WeKnora/
+   ```
+
+2. **在新环境恢复**
+   ```bash
+   tar -xzf weknora-backup.tar.gz
+   cd WeKnora
+   docker-compose up -d
+   ```
+
+3. **无需重新下载依赖** - 所有编译缓存和依赖都已挂载到本地
 ```
 
 ## 🤝 贡献指南

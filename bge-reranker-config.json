@@ -1,0 +1,8 @@
+{
+  "model_name": "bge-reranker-v2-m3",
+  "model_type": "rerank",
+  "model_hub": "huggingface",
+  "model_id": "BAAI/bge-reranker-v2-m3",
+  "language": ["en", "zh", "multilingual"],
+  "persist": true
+}
