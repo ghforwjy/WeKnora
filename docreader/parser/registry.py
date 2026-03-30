@@ -5,7 +5,7 @@ from docreader.parser.base_parser import BaseParser
 from docreader.parser.doc_parser import DocParser
 from docreader.parser.docx2_parser import Docx2Parser
 from docreader.parser.docx_parser import DocxParser
-from docreader.parser.docling_parser import DoclingParser
+# from docreader.parser.docling_parser import DoclingParser
 from docreader.parser.excel_parser import ExcelParser
 from docreader.parser.image_parser import ImageParser
 from docreader.parser.markdown_parser import MarkdownParser
@@ -152,21 +152,21 @@ def _build_default_registry() -> ParserEngineRegistry:
         description="MarkItDown 解析引擎（微软 MarkItDown 库）",
     )
 
-    reg.register(
-        "docling",
-        {
-            "md": DoclingParser,
-            "markdown": DoclingParser,
-            "pdf": DoclingParser,
-            "docx": DoclingParser,
-            "doc": DoclingParser,
-            "pptx": DoclingParser,
-            "ppt": DoclingParser,
-            "xlsx": DoclingParser,
-            "xls": DoclingParser,
-        },
-        description="Docling 解析引擎（转换为 Markdown 格式）",
-    )
+    # reg.register(
+    #     "docling",
+    #     {
+    #         "md": DoclingParser,
+    #         "markdown": DoclingParser,
+    #         "pdf": DoclingParser,
+    #         "docx": DoclingParser,
+    #         "doc": DoclingParser,
+    #         "pptx": DoclingParser,
+    #         "ppt": DoclingParser,
+    #         "xlsx": DoclingParser,
+    #         "xls": DoclingParser,
+    #     },
+    #     description="Docling 解析引擎（转换为 Markdown 格式）",
+    # )
 
     # NOTE: Engine listing is managed by Go-side engine registry
     # (docparser.ListAllEngines). The Python list_engines method is kept for

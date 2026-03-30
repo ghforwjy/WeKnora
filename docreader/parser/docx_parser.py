@@ -17,6 +17,7 @@ from docx.image.exceptions import (
     UnexpectedEndOfFileError,
     UnrecognizedImageError,
 )
+from docx.oxml.ns import qn
 from PIL import Image
 
 from docreader.models.document import Document as DocumentModel
@@ -24,6 +25,162 @@ from docreader.parser.base_parser import BaseParser
 from docreader.utils import endecode
 
 logger = logging.getLogger(__name__)
+
+
+def _get_paragraph_numbering_info(paragraph):
+    """
+    获取段落的编号信息
+
+    返回: (num_id, ilvl) 或 (None, None) 如果没有编号
+    """
+    try:
+        # 获取段落的 pPr (段落属性)
+        pPr = paragraph._element.get_or_add_pPr()
+
+        # 查找 numPr (编号属性)
+        numPr = pPr.numPr
+        if numPr is None:
+            return None, None
+
+        # 获取 numId (编号定义ID)
+        numId = numPr.numId.val if numPr.numId is not None else None
+
+        # 获取 ilvl (缩进级别)
+        ilvl = numPr.ilvl.val if numPr.ilvl is not None else 0
+
+        return numId, ilvl
+    except Exception as e:
+        logger.debug(f"获取编号信息失败: {e}")
+        return None, None
+
+
+def _to_roman(num):
+    """将数字转换为罗马数字"""
+    val = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+    syb = ["M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"]
+    roman_num = ''
+    i = 0
+    while num > 0:
+        for _ in range(num // val[i]):
+            roman_num += syb[i]
+            num -= val[i]
+        i += 1
+    return roman_num
+
+
+def _to_chinese_number(num):
+    """将数字转换为中文数字"""
+    chinese_nums = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+    if num <= 10:
+        return chinese_nums[num]
+    elif num < 20:
+        return '十' + (chinese_nums[num - 10] if num > 10 else '')
+    elif num < 100:
+        tens = num // 10
+        ones = num % 10
+        if ones == 0:
+            return chinese_nums[tens] + '十'
+        else:
+            return chinese_nums[tens] + '十' + chinese_nums[ones]
+    else:
+        return str(num)
+
+
+def _get_numbering_text(document, num_id, ilvl, paragraph_index):
+    """
+    根据编号定义获取编号文本
+
+    例如：返回 "1.", "(1)", "第一条" 等
+    """
+    try:
+        # 获取文档的 numbering 部分
+        numbering_part = document.part.numbering_part
+        if numbering_part is None:
+            return None
+
+        # 获取 numbering 定义 (通过 _element 属性)
+        numbering = numbering_part._element
+
+        # 查找对应的 num 定义
+        num = None
+        for n in numbering.num_lst:
+            if n.numId == num_id:
+                num = n
+                break
+
+        if num is None:
+            return None
+
+        # 获取 abstractNumId
+        abstract_num_id = num.abstractNumId.val
+
+        # 查找 abstractNum 定义 (使用 findall 和 qn)
+        abstract_num = None
+        for an in numbering.findall(qn('w:abstractNum')):
+            if an.get(qn('w:abstractNumId')) == str(abstract_num_id):
+                abstract_num = an
+                break
+
+        if abstract_num is None:
+            return None
+
+        # 获取对应级别的 lvl 定义
+        lvl = None
+        for l in abstract_num.findall(qn('w:lvl')):
+            if int(l.get(qn('w:ilvl'))) == ilvl:
+                lvl = l
+                break
+
+        if lvl is None:
+            return None
+
+        # 获取编号格式
+        num_fmt_elem = lvl.find(qn('w:numFmt'))
+        num_fmt = num_fmt_elem.get(qn('w:val')) if num_fmt_elem is not None else 'decimal'
+
+        # 获取 lvlText (编号模板)
+        lvl_text_elem = lvl.find(qn('w:lvlText'))
+        lvl_text = lvl_text_elem.get(qn('w:val')) if lvl_text_elem is not None else '%1.'
+
+        # 获取起始编号
+        start_elem = lvl.find(qn('w:start'))
+        start = int(start_elem.get(qn('w:val'))) if start_elem is not None else 1
+
+        # 计算当前段落的编号值
+        current_num = start + paragraph_index
+
+        # 根据格式生成编号文本
+        if num_fmt == 'decimal':
+            num_str = str(current_num)
+        elif num_fmt == 'lowerLetter':
+            num_str = chr(ord('a') + current_num - 1)
+        elif num_fmt == 'upperLetter':
+            num_str = chr(ord('A') + current_num - 1)
+        elif num_fmt == 'lowerRoman':
+            num_str = _to_roman(current_num).lower()
+        elif num_fmt == 'upperRoman':
+            num_str = _to_roman(current_num).upper()
+        elif num_fmt == 'chineseCounting':
+            # 中文数字
+            num_str = _to_chinese_number(current_num)
+        elif num_fmt == 'chineseCountingThousand':
+            # 中文数字（千位）
+            num_str = _to_chinese_number(current_num)
+        elif num_fmt == 'ideographTraditional':
+            # 传统中文数字
+            num_str = _to_chinese_number(current_num)
+        else:
+            num_str = str(current_num)
+
+        # 替换模板中的 %1, %2, %3 等
+        numbering_text = lvl_text.replace('%1', num_str)
+        # 注意：对于多级列表，可能需要替换 %2, %3 等，这里简化处理
+
+        return numbering_text
+
+    except Exception as e:
+        logger.debug(f"获取编号文本失败: {e}")
+        return None
 
 
 class ImageData:
@@ -202,6 +359,9 @@ class DocxParser(BaseParser):
             )
             text_parts = []
 
+            # 用于跟踪编号计数 - key: (num_id, ilvl), value: 计数
+            num_counters = {}
+
             # Extract paragraph text
             para_count = len(doc.paragraphs)
             logger.info(f"Extracting text from {para_count} paragraphs")
@@ -209,8 +369,25 @@ class DocxParser(BaseParser):
             for i, para in enumerate(doc.paragraphs):
                 if i % 100 == 0:
                     logger.info(f"Processing paragraph {i + 1}/{para_count}")
-                if para.text.strip():
-                    text_parts.append(para.text.strip())
+                text = para.text.strip()
+                if text:
+                    # 处理列表编号 - 获取段落的编号信息
+                    num_id, ilvl = _get_paragraph_numbering_info(para)
+                    if num_id is not None:
+                        # 计算该编号类型的序号
+                        key = (num_id, ilvl)
+                        if key not in num_counters:
+                            num_counters[key] = 0
+                        num_counters[key] += 1
+
+                        # 获取编号文本
+                        numbering_text = _get_numbering_text(doc, num_id, ilvl, num_counters[key] - 1)
+
+                        if numbering_text:
+                            # 将编号添加到文本前面
+                            text = f"{numbering_text} {text}"
+
+                    text_parts.append(text)
                     para_with_text += 1
 
             logger.info(f"Extracted text from {para_with_text}/{para_count} paragraphs")
@@ -1331,6 +1508,9 @@ def _extract_page_content_in_process(
     paragraphs_with_text = 0
     paragraphs_with_images = 0
 
+    # 用于跟踪编号计数 - key: (num_id, ilvl), value: 计数
+    num_counters = {}
+
     for para_idx in paragraphs:
         if para_idx >= len(doc.paragraphs):
             logger.warning(
@@ -1347,9 +1527,30 @@ def _extract_page_content_in_process(
             # Log the original text to see what's being extracted
             if para_idx < 20:  # Log more paragraphs to find numbered ones
                 logger.info(f"[PID:{os.getpid()}] Paragraph {para_idx} original text: '{text}'")
-            # Also log paragraphs that contain numbering patterns
-            if '第一条' in text or '第二条' in text or '第三条' in text or '第1条' in text:
+            # Also log paragraphs that contain numbering patterns (including 第X条)
+            if any(keyword in text for keyword in ['第一条', '第二条', '第三条', '第1条', '第2条', '第3条', '第4条', '第5条', '第6条', '第7条', '第8条', '第9条']):
                 logger.info(f"[PID:{os.getpid()}] Found numbered paragraph {para_idx}: '{text}'")
+            # Log all paragraphs containing "条" for debugging
+            if '条' in text:
+                logger.info(f"[PID:{os.getpid()}] Paragraph {para_idx} contains '条': '{text[:100]}...'")
+
+            # 处理列表编号 - 获取段落的编号信息
+            num_id, ilvl = _get_paragraph_numbering_info(paragraph)
+            if num_id is not None:
+                # 计算该编号类型的序号
+                key = (num_id, ilvl)
+                if key not in num_counters:
+                    num_counters[key] = 0
+                num_counters[key] += 1
+
+                # 获取编号文本
+                numbering_text = _get_numbering_text(doc, num_id, ilvl, num_counters[key] - 1)
+
+                if numbering_text:
+                    # 将编号添加到文本前面
+                    text = f"{numbering_text} {text}"
+                    logger.info(f"[PID:{os.getpid()}] Paragraph {para_idx} with numbering: '{text[:80]}...'")
+
             # Clean text
             cleaned_text = re.sub(r"\u3000", " ", text).strip()
             current_text += cleaned_text + "\n"
