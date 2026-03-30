@@ -167,6 +167,52 @@
           </div>
         </div>
       </div>
+
+      <!-- 脱敏功能 -->
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>脱敏功能</label>
+          <p class="desc">在解析完文件后，对解析出来的全文文本在切片前进行预处理，替换敏感词</p>
+        </div>
+        <div class="setting-control">
+          <t-switch
+            v-model="localSensitiveEnabled"
+            @change="emitUpdate"
+          />
+        </div>
+      </div>
+
+      <!-- 敏感词配置 -->
+      <div v-if="localSensitiveEnabled" class="setting-row">
+        <div class="setting-info">
+          <label>敏感词</label>
+          <p class="desc">请输入敏感词，多个敏感词用逗号分隔</p>
+        </div>
+        <div class="setting-control">
+          <t-input
+            v-model="localSensitiveWords"
+            placeholder="请输入敏感词，例如：密码,身份证"
+            @change="emitUpdate"
+            style="width: 280px;"
+          />
+        </div>
+      </div>
+
+      <!-- 替换词配置 -->
+      <div v-if="localSensitiveEnabled" class="setting-row">
+        <div class="setting-info">
+          <label>替换为</label>
+          <p class="desc">请输入替换词，多个替换词用逗号分隔，与敏感词一一对应</p>
+        </div>
+        <div class="setting-control">
+          <t-input
+            v-model="localReplacementWords"
+            placeholder="请输入替换词，例如：***,****"
+            @change="emitUpdate"
+            style="width: 280px;"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -180,6 +226,11 @@ interface ParserEngineRule {
   engine: string
 }
 
+interface SensitiveConfig {
+  enabled: boolean
+  replacements: Record<string, string>
+}
+
 interface ChunkingConfig {
   chunkSize: number
   chunkOverlap: number
@@ -190,6 +241,7 @@ interface ChunkingConfig {
   enableParentChild: boolean
   parentChunkSize: number
   childChunkSize: number
+  sensitiveConfig?: SensitiveConfig
 }
 
 interface Props {
@@ -210,6 +262,9 @@ const localChildSeparators = ref([...(props.config.childSeparators || [])])
 const localEnableParentChild = ref(props.config.enableParentChild ?? false)
 const localParentChunkSize = ref(props.config.parentChunkSize || 4096)
 const localChildChunkSize = ref(props.config.childChunkSize || 384)
+const localSensitiveEnabled = ref(props.config.sensitiveConfig?.enabled ?? false)
+const localSensitiveWords = ref('') // 敏感词列表，用逗号分隔
+const localReplacementWords = ref('') // 替换词列表，用逗号分隔
 const { t } = useI18n()
 
 const separatorOptions = computed(() => [
@@ -236,6 +291,18 @@ watch(() => props.config, (newConfig) => {
   localEnableParentChild.value = newConfig.enableParentChild ?? false
   localParentChunkSize.value = newConfig.parentChunkSize || 4096
   localChildChunkSize.value = newConfig.childChunkSize || 384
+  
+  // 处理脱敏配置
+  localSensitiveEnabled.value = newConfig.sensitiveConfig?.enabled ?? false
+  if (newConfig.sensitiveConfig?.replacements) {
+    const sensitiveWords = Object.keys(newConfig.sensitiveConfig.replacements)
+    const replacementWords = Object.values(newConfig.sensitiveConfig.replacements)
+    localSensitiveWords.value = sensitiveWords.join(', ')
+    localReplacementWords.value = replacementWords.join(', ')
+  } else {
+    localSensitiveWords.value = ''
+    localReplacementWords.value = ''
+  }
 }, { deep: true })
 
 const handleChunkSizeChange = () => { emitUpdate() }
@@ -248,6 +315,22 @@ const handleParentChunkSizeChange = () => { emitUpdate() }
 const handleChildChunkSizeChange = () => { emitUpdate() }
 
 const emitUpdate = () => {
+  // 处理脱敏配置
+  const sensitiveConfig = {
+    enabled: localSensitiveEnabled.value,
+    replacements: {}
+  }
+  
+  if (localSensitiveEnabled.value && localSensitiveWords.value) {
+    const sensitiveWords = localSensitiveWords.value.split(',').map(word => word.trim()).filter(word => word)
+    const replacementWords = localReplacementWords.value.split(',').map(word => word.trim())
+    
+    sensitiveWords.forEach((word, index) => {
+      const replacement = index < replacementWords.length ? replacementWords[index] : ''
+      sensitiveConfig.replacements[word] = replacement
+    })
+  }
+  
   emit('update:config', {
     chunkSize: localChunkSize.value,
     chunkOverlap: localChunkOverlap.value,
@@ -257,7 +340,8 @@ const emitUpdate = () => {
     parserEngineRules: props.config.parserEngineRules,
     enableParentChild: localEnableParentChild.value,
     parentChunkSize: localParentChunkSize.value,
-    childChunkSize: localChildChunkSize.value
+    childChunkSize: localChildChunkSize.value,
+    sensitiveConfig: sensitiveConfig
   })
 }
 </script>

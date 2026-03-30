@@ -348,7 +348,11 @@ const initFormData = (type: 'document' | 'faq' = 'document') => {
       parserEngineRules: undefined as any,
       enableParentChild: true,
       parentChunkSize: 4096,
-      childChunkSize: 384
+      childChunkSize: 384,
+      sensitiveConfig: {
+        enabled: false,
+        replacements: {}
+      }
     },
     storageProvider: '' as string,
     multimodalConfig: {
@@ -422,16 +426,20 @@ const loadKBData = async () => {
         embeddingModelId: kb.embedding_model_id || ''
       },
       chunkingConfig: {
-        chunkSize: kb.chunking_config?.chunk_size || 512,
-        chunkOverlap: kb.chunking_config?.chunk_overlap || 100,
-        separators: kb.chunking_config?.separators || ['\n\n', '\n', '。', '！', '？', ';', '；'],
-        parentSeparators: kb.chunking_config?.parent_separators || [],
-        childSeparators: kb.chunking_config?.child_separators || [],
-        parserEngineRules: kb.chunking_config?.parser_engine_rules || undefined,
-        enableParentChild: kb.chunking_config?.enable_parent_child || false,
-        parentChunkSize: kb.chunking_config?.parent_chunk_size || 4096,
-        childChunkSize: kb.chunking_config?.child_chunk_size || 384
-      },
+          chunkSize: kb.chunking_config?.chunk_size || 512,
+          chunkOverlap: kb.chunking_config?.chunk_overlap || 100,
+          separators: kb.chunking_config?.separators || ['\n\n', '\n', '。', '！', '？', ';', '；'],
+          parentSeparators: kb.chunking_config?.parent_separators || [],
+          childSeparators: kb.chunking_config?.child_separators || [],
+          parserEngineRules: kb.chunking_config?.parser_engine_rules || undefined,
+          enableParentChild: kb.chunking_config?.enable_parent_child || false,
+          parentChunkSize: kb.chunking_config?.parent_chunk_size || 4096,
+          childChunkSize: kb.chunking_config?.child_chunk_size || 384,
+          sensitiveConfig: {
+            enabled: kb.chunking_config?.sensitive_config?.enabled || false,
+            replacements: kb.chunking_config?.sensitive_config?.replacements || {}
+          }
+        },
       storageProvider: (kb.storage_config?.provider || 'local') as string,
       multimodalConfig: {
         enabled: !!kb.vlm_config?.enabled,
@@ -573,6 +581,7 @@ const buildSubmitData = () => {
       enable_parent_child: formData.value.chunkingConfig.enableParentChild,
       parent_chunk_size: formData.value.chunkingConfig.parentChunkSize,
       child_chunk_size: formData.value.chunkingConfig.childChunkSize,
+      sensitive_config: formData.value.chunkingConfig.sensitiveConfig,
       ...(formData.value.chunkingConfig.parserEngineRules?.length
         ? { parser_engine_rules: formData.value.chunkingConfig.parserEngineRules }
         : {})
@@ -706,7 +715,8 @@ const doSubmit = async () => {
           parserEngineRules: data.chunking_config.parser_engine_rules || undefined,
           enableParentChild: data.chunking_config.enable_parent_child || false,
           parentChunkSize: data.chunking_config.parent_chunk_size || 4096,
-          childChunkSize: data.chunking_config.child_chunk_size || 384
+          childChunkSize: data.chunking_config.child_chunk_size || 384,
+          sensitiveConfig: data.chunking_config.sensitive_config
         },
         multimodal: {
           enabled: !!data.vlm_config?.enabled

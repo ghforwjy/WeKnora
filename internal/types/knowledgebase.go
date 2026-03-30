@@ -108,6 +108,12 @@ type ParserEngineRule struct {
 	Engine    string   `yaml:"engine"     json:"engine"`
 }
 
+// SensitiveConfig 脱敏配置
+type SensitiveConfig struct {
+	Enabled       bool              `yaml:"enabled"       json:"enabled"`
+	Replacements  map[string]string `yaml:"replacements"  json:"replacements"` // 敏感词到替换词的映射
+}
+
 // ChunkingConfig represents the document splitting configuration
 type ChunkingConfig struct {
 	// Chunk size
@@ -135,6 +141,8 @@ type ChunkingConfig struct {
 	// ChildChunkSize is the size of child chunks used for embedding (default: 384).
 	// Only used when EnableParentChild is true.
 	ChildChunkSize int `yaml:"child_chunk_size,omitempty" json:"child_chunk_size,omitempty"`
+	// SensitiveConfig 脱敏配置
+	SensitiveConfig SensitiveConfig `yaml:"sensitive_config,omitempty" json:"sensitive_config,omitempty"`
 }
 
 // ResolveParserEngine returns the engine name for the given file type

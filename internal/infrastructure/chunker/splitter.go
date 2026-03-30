@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Tencent/WeKnora/internal/infrastructure/docparser"
+	"github.com/Tencent/WeKnora/internal/searchutil"
 )
 
 // Chunk represents a piece of split text with position tracking.
@@ -184,6 +185,20 @@ func SplitText(text string, cfg SplitterConfig) []Chunk {
 
 	// Step 3: Merge units into chunks with overlap
 	return mergeUnits(units, chunkSize, chunkOverlap)
+}
+
+// SplitTextWithSensitiveFilter splits text into chunks with overlap, applying sensitive filter before chunking.
+func SplitTextWithSensitiveFilter(text string, cfg SplitterConfig, sensitiveConfig searchutil.SensitiveConfig) []Chunk {
+	// Apply sensitive filter before chunking
+	treatedText := searchutil.ApplySensitiveFilter(text, sensitiveConfig)
+	return SplitText(treatedText, cfg)
+}
+
+// SplitTextParentChildWithSensitiveFilter performs two-level chunking with sensitive filter.
+func SplitTextParentChildWithSensitiveFilter(text string, parentCfg, childCfg SplitterConfig, sensitiveConfig searchutil.SensitiveConfig) ParentChildResult {
+	// Apply sensitive filter before chunking
+	treatedText := searchutil.ApplySensitiveFilter(text, sensitiveConfig)
+	return SplitTextParentChild(treatedText, parentCfg, childCfg)
 }
 
 // buildUnitsWithProtection splits text into units, preserving protected spans as atomic.

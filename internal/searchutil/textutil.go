@@ -9,6 +9,25 @@ import (
 	"github.com/Tencent/WeKnora/internal/types"
 )
 
+// SensitiveConfig 脱敏配置
+type SensitiveConfig struct {
+	Enabled       bool              `json:"enabled"`
+	Replacements  map[string]string `json:"replacements"` // 敏感词到替换词的映射
+}
+
+// ApplySensitiveFilter 应用脱敏过滤
+func ApplySensitiveFilter(text string, config SensitiveConfig) string {
+	if !config.Enabled || len(config.Replacements) == 0 {
+		return text
+	}
+
+	result := text
+	for sensitive, replacement := range config.Replacements {
+		result = strings.ReplaceAll(result, sensitive, replacement)
+	}
+	return result
+}
+
 // BuildContentSignature creates a normalized MD5 signature for content to detect duplicates.
 // It normalizes the content by lowercasing, trimming whitespace, and collapsing multiple spaces.
 func BuildContentSignature(content string) string {
