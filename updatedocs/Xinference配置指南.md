@@ -69,7 +69,7 @@ xinference:
     - xinference
     - full
   command: >
-    bash -c "xinference-local -H 0.0.0.0 & until curl -s http://localhost:9997/v1/models; do sleep 1; done && curl -X POST http://localhost:9997/v1/models -H 'Content-Type: application/json' -d '{\"model_name\": \"bge-reranker-v2-m3\", \"model_type\": \"rerank\"}' && wait"
+    bash -c "xinference-local -H 0.0.0.0 & until curl -s http://localhost:9997/v1/models > /dev/null 2>&1; do sleep 5; done && curl -X POST http://localhost:9997/v1/models -H 'Content-Type: application/json' -d '{\"model_name\": \"bge-reranker-v2-m3\", \"model_type\": \"rerank\"}' && wait"
   environment:
     - XINFERENCE_MODEL_SRC=huggingface
   extra_hosts:
@@ -77,18 +77,27 @@ xinference:
   runtime: nvidia
   healthcheck:
     test: ["CMD", "curl", "-f", "http://localhost:9997/v1/models"]
-    interval: 1s
-    timeout: 5s
-    retries: 30
+    interval: 30s
+    timeout: 10s
+    retries: 5
+    start_period: 60s
 ```
 
 这个配置会：
 1. 启动 Xinference 服务
-2. 轮询检查服务是否可用
+2. 轮询检查服务是否可用（每5秒检查一次）
 3. 服务可用后自动加载 bge-reranker-v2-m3 模型
 4. 等待服务继续运行
 
-### 3.3 模型加载状态检查
+### 3.3 模型加载时间
+
+模型加载时间通常需要45-50秒左右，具体取决于您的硬件性能和网络速度。加载过程包括：
+
+- 下载模型文件（如果第一次加载）
+- 加载模型配置和权重
+- 初始化模型
+
+### 3.4 模型加载状态检查
 
 您可以通过以下命令检查模型是否成功加载：
 
@@ -122,8 +131,11 @@ docker logs WeKnora-xinference
 1. **使用持久化挂载**：将模型目录挂载到本地，避免每次容器重启都重新下载模型
 2. **合理配置资源**：根据模型大小分配足够的 GPU 内存
 3. **定期更新模型**：定期检查并更新模型版本
-4. **监控服务状态**：使用健康检查监控服务状态
+4. **监控服务状态**：使用健康检查监控服务状态，设置合理的健康检查参数
 5. **设置合理的超时**：在启动脚本中设置合理的超时时间，避免服务启动失败
+6. **使用until循环等待服务启动**：使用`until`循环等待服务完全启动，避免在服务未就绪时尝试加载模型
+7. **合理设置健康检查间隔**：使用适当的间隔检查服务状态，避免过快的检查导致服务不稳定
+8. **设置足够的启动周期**：为健康检查设置足够的启动周期，确保服务有足够时间加载模型
 
 ## 6. 示例：使用 OpenAI 客户端访问 Xinference
 

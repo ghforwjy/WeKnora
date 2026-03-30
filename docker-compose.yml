@@ -404,7 +404,7 @@ services:
       - xinference
       - full
     command: >
-      bash -c "xinference-local -H 0.0.0.0 & until curl -s http://localhost:9997/v1/models; do sleep 1; done && curl -X POST http://localhost:9997/v1/models -H 'Content-Type: application/json' -d '{\"model_name\": \"bge-reranker-v2-m3\", \"model_type\": \"rerank\"}' && wait"
+      bash -c "xinference-local -H 0.0.0.0 & until curl -s http://localhost:9997/v1/models > /dev/null 2>&1; do sleep 5; done && curl -X POST http://localhost:9997/v1/models -H 'Content-Type: application/json' -d '{\"model_name\": \"bge-reranker-v2-m3\", \"model_type\": \"rerank\"}' && wait"
     environment:
       - XINFERENCE_MODEL_SRC=huggingface
     extra_hosts:
@@ -412,9 +412,10 @@ services:
     runtime: nvidia
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9997/v1/models"]
-      interval: 1s
-      timeout: 5s
-      retries: 30
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 networks:
   WeKnora-network:
