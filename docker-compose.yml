@@ -44,6 +44,8 @@ services:
     volumes:
       # 后端源码挂载（只读，用于参考）
       - ./:/app_src:ro
+      # 脚本目录挂载（可写，用于修改 entrypoint 脚本）
+      - ./scripts:/app/scripts:ro
       # 数据和文件挂载
       - ./volumes/data_files:/data/files
       - ./volumes/docreader-tmp:/tmp/docreader:ro

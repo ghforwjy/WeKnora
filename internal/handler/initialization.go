@@ -101,6 +101,7 @@ type KBModelConfigRequest struct {
 		EnableParentChild bool                     `json:"enableParentChild"`
 		ParentChunkSize   int                      `json:"parentChunkSize,omitempty"`
 		ChildChunkSize    int                      `json:"childChunkSize,omitempty"`
+		SensitiveConfig   types.SensitiveConfig    `json:"sensitiveConfig,omitempty"`
 	} `json:"documentSplitting"`
 
 	// 多模态配置（仅模型相关；存储引擎在 storageProvider 中配置）
@@ -307,6 +308,8 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 	if req.DocumentSplitting.ChildChunkSize > 0 {
 		kb.ChunkingConfig.ChildChunkSize = req.DocumentSplitting.ChildChunkSize
 	}
+	// 更新脱敏配置
+	kb.ChunkingConfig.SensitiveConfig = req.DocumentSplitting.SensitiveConfig
 
 	// 更新多模态配置
 	if req.Multimodal.Enabled {
@@ -1403,11 +1406,26 @@ func (h *InitializationHandler) buildConfigResponse(ctx context.Context, models 
 
 	// 添加知识库的文档分割配置
 	if kb != nil {
-		config["documentSplitting"] = map[string]interface{}{
+		documentSplitting := map[string]interface{}{
 			"chunkSize":    kb.ChunkingConfig.ChunkSize,
 			"chunkOverlap": kb.ChunkingConfig.ChunkOverlap,
 			"separators":   kb.ChunkingConfig.Separators,
+			"sensitiveConfig": map[string]interface{}{
+				"enabled":       kb.ChunkingConfig.SensitiveConfig.Enabled,
+				"replacements":  kb.ChunkingConfig.SensitiveConfig.Replacements,
+			},
 		}
+		// 添加父子分块相关配置
+		if len(kb.ChunkingConfig.ParentSeparators) > 0 {
+			documentSplitting["parentSeparators"] = kb.ChunkingConfig.ParentSeparators
+		}
+		if len(kb.ChunkingConfig.ChildSeparators) > 0 {
+			documentSplitting["childSeparators"] = kb.ChunkingConfig.ChildSeparators
+		}
+		documentSplitting["enableParentChild"] = kb.ChunkingConfig.EnableParentChild
+		documentSplitting["parentChunkSize"] = kb.ChunkingConfig.ParentChunkSize
+		documentSplitting["childChunkSize"] = kb.ChunkingConfig.ChildChunkSize
+		config["documentSplitting"] = documentSplitting
 
 		// 添加多模态的存储配置信息（优先读新字段，兼容旧 cos_config）
 		effectiveProvider := kb.GetStorageProvider()
