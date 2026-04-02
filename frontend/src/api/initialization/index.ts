@@ -91,6 +91,10 @@ export interface KBModelConfigRequest {
         enableParentChild?: boolean
         parentChunkSize?: number
         childChunkSize?: number
+        sensitiveConfig?: {
+            enabled: boolean
+            replacements: Record<string, string>
+        }
     }
     multimodal: {
         enabled: boolean

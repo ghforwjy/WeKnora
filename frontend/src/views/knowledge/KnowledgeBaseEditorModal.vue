@@ -436,8 +436,8 @@ const loadKBData = async () => {
           parentChunkSize: kb.chunking_config?.parent_chunk_size || 4096,
           childChunkSize: kb.chunking_config?.child_chunk_size || 384,
           sensitiveConfig: {
-            enabled: kb.chunking_config?.sensitive_config?.enabled || false,
-            replacements: kb.chunking_config?.sensitive_config?.replacements || {}
+            enabled: kb.chunking_config?.sensitiveConfig?.enabled || false,
+            replacements: kb.chunking_config?.sensitiveConfig?.replacements || {}
           }
         },
       storageProvider: (kb.storage_config?.provider || 'local') as string,
@@ -581,7 +581,7 @@ const buildSubmitData = () => {
       enable_parent_child: formData.value.chunkingConfig.enableParentChild,
       parent_chunk_size: formData.value.chunkingConfig.parentChunkSize,
       child_chunk_size: formData.value.chunkingConfig.childChunkSize,
-      sensitive_config: formData.value.chunkingConfig.sensitiveConfig,
+      sensitiveConfig: formData.value.chunkingConfig.sensitiveConfig,
       ...(formData.value.chunkingConfig.parserEngineRules?.length
         ? { parser_engine_rules: formData.value.chunkingConfig.parserEngineRules }
         : {})
@@ -716,7 +716,7 @@ const doSubmit = async () => {
           enableParentChild: data.chunking_config.enable_parent_child || false,
           parentChunkSize: data.chunking_config.parent_chunk_size || 4096,
           childChunkSize: data.chunking_config.child_chunk_size || 384,
-          sensitiveConfig: data.chunking_config.sensitive_config
+          sensitiveConfig: data.chunking_config.sensitiveConfig
         },
         multimodal: {
           enabled: !!data.vlm_config?.enabled

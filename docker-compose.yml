@@ -42,8 +42,10 @@ services:
     ports:
       - "${APP_PORT:-8080}:8080"
     volumes:
-      # 后端源码挂载（只读，用于参考）
-      - ./:/app_src:ro
+      # 后端源码挂载（可写，用于容器内编译）
+      - ./:/app_src:rw
+      # 二进制文件目录映射到本地（持久化编译结果）
+      - ./volumes/app:/app
       # 脚本目录挂载（可写，用于修改 entrypoint 脚本）
       - ./scripts:/app/scripts:ro
       # 数据和文件挂载
@@ -65,6 +67,8 @@ services:
       retries: 3
       start_period: 60s
     environment:
+      - TZ=Asia/Shanghai
+      - GOLANG_PROTOBUF_REGISTRATION_CONFLICT=warn
       - LOG_LEVEL=${LOG_LEVEL:-}
       - COS_SECRET_ID=${COS_SECRET_ID:-}
       - COS_SECRET_KEY=${COS_SECRET_KEY:-}
