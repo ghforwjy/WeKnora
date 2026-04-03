@@ -309,12 +309,7 @@ func (h *InitializationHandler) UpdateKBConfig(c *gin.Context) {
 		kb.ChunkingConfig.ChildChunkSize = req.DocumentSplitting.ChildChunkSize
 	}
 	// 更新脱敏配置
-	logger.Info(ctx, "Updating sensitive config", "config", req.DocumentSplitting.SensitiveConfig)
 	kb.ChunkingConfig.SensitiveConfig = req.DocumentSplitting.SensitiveConfig
-	logger.Info(ctx, "Sensitive config updated in KB object", "enabled", kb.ChunkingConfig.SensitiveConfig.Enabled, "replacements_count", len(kb.ChunkingConfig.SensitiveConfig.Replacements))
-	
-	// 保存到数据库前的日志
-	logger.Info(ctx, "Before saving to database", "chunking_config", kb.ChunkingConfig)
 
 	// 更新多模态配置
 	if req.Multimodal.Enabled {

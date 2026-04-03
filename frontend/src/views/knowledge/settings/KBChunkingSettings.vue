@@ -263,8 +263,11 @@ const localEnableParentChild = ref(props.config.enableParentChild ?? false)
 const localParentChunkSize = ref(props.config.parentChunkSize || 4096)
 const localChildChunkSize = ref(props.config.childChunkSize || 384)
 const localSensitiveEnabled = ref(props.config.sensitiveConfig?.enabled ?? false)
-const localSensitiveWords = ref('') // 敏感词列表，用逗号分隔
-const localReplacementWords = ref('') // 替换词列表，用逗号分隔
+const initialReplacements = props.config.sensitiveConfig?.replacements || {}
+const initialSensitiveWords = Object.keys(initialReplacements).join(', ')
+const initialReplacementWords = Object.values(initialReplacements).join(', ')
+const localSensitiveWords = ref(initialSensitiveWords) // 敏感词列表，用逗号分隔
+const localReplacementWords = ref(initialReplacementWords) // 替换词列表，用逗号分隔
 const { t } = useI18n()
 
 const separatorOptions = computed(() => [

@@ -426,20 +426,20 @@ const loadKBData = async () => {
         embeddingModelId: kb.embedding_model_id || ''
       },
       chunkingConfig: {
-          chunkSize: kb.chunking_config?.chunk_size || 512,
-          chunkOverlap: kb.chunking_config?.chunk_overlap || 100,
-          separators: kb.chunking_config?.separators || ['\n\n', '\n', '。', '！', '？', ';', '；'],
-          parentSeparators: kb.chunking_config?.parent_separators || [],
-          childSeparators: kb.chunking_config?.child_separators || [],
-          parserEngineRules: kb.chunking_config?.parser_engine_rules || undefined,
-          enableParentChild: kb.chunking_config?.enable_parent_child || false,
-          parentChunkSize: kb.chunking_config?.parent_chunk_size || 4096,
-          childChunkSize: kb.chunking_config?.child_chunk_size || 384,
-          sensitiveConfig: {
-            enabled: kb.chunking_config?.sensitiveConfig?.enabled || false,
-            replacements: kb.chunking_config?.sensitiveConfig?.replacements || {}
-          }
-        },
+        chunkSize: kb.chunking_config?.chunk_size || 512,
+        chunkOverlap: kb.chunking_config?.chunk_overlap || 100,
+        separators: kb.chunking_config?.separators || ['\n\n', '\n', '。', '！', '？', ';', '；'],
+        parentSeparators: kb.chunking_config?.parent_separators || [],
+        childSeparators: kb.chunking_config?.child_separators || [],
+        parserEngineRules: kb.chunking_config?.parser_engine_rules || undefined,
+        enableParentChild: kb.chunking_config?.enable_parent_child || false,
+        parentChunkSize: kb.chunking_config?.parent_chunk_size || 4096,
+        childChunkSize: kb.chunking_config?.child_chunk_size || 384,
+        sensitiveConfig: {
+          enabled: kb.chunking_config?.sensitive_config?.enabled || false,
+          replacements: kb.chunking_config?.sensitive_config?.replacements || {}
+        }
+      },
       storageProvider: (kb.storage_config?.provider || 'local') as string,
       multimodalConfig: {
         enabled: !!kb.vlm_config?.enabled,
@@ -716,7 +716,7 @@ const doSubmit = async () => {
           enableParentChild: data.chunking_config.enable_parent_child || false,
           parentChunkSize: data.chunking_config.parent_chunk_size || 4096,
           childChunkSize: data.chunking_config.child_chunk_size || 384,
-          sensitiveConfig: data.chunking_config.sensitiveConfig
+          sensitiveConfig: data.chunking_config.sensitive_config
         },
         multimodal: {
           enabled: !!data.vlm_config?.enabled
